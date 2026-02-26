@@ -3,113 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Enterprise AI Interview Simulator</title>
+<title>Professional AI Interview Simulator</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
-
-body{
-background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-color:white;
-}
-
-.container{
-width:95%;
-max-width:1100px;
-background:rgba(0,0,0,0.93);
-padding:35px;
-border-radius:18px;
-box-shadow:0 0 50px rgba(0,255,255,0.4);
-}
-
-h1{text-align:center;margin-bottom:25px;}
-
-.top{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:15px;
-}
-
-select{
-padding:10px;
-border-radius:8px;
-border:none;
-}
-
-.timer{
-font-weight:600;
-color:#00ffcc;
-font-size:18px;
-}
-
-.question{
-margin-top:20px;
-font-size:18px;
-min-height:60px;
-}
-
-textarea{
-width:100%;
-margin-top:20px;
-padding:15px;
-border-radius:10px;
-border:none;
-resize:none;
-font-size:14px;
-}
-
-button{
-margin-top:10px;
-padding:12px;
-width:100%;
-border:none;
-border-radius:8px;
-background:#00c6ff;
-font-weight:600;
-cursor:pointer;
-transition:0.3s;
-}
-
+body{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);display:flex;justify-content:center;align-items:center;height:100vh;color:white;}
+.container{width:95%;max-width:950px;background:rgba(0,0,0,0.9);padding:35px;border-radius:18px;box-shadow:0 0 40px rgba(0,255,255,0.3);}
+h1{text-align:center;margin-bottom:20px;font-weight:600;}
+.top-section{display:flex;justify-content:space-between;align-items:center;gap:20px;}
+select{padding:10px;border-radius:8px;border:none;font-size:15px;}
+.timer{font-size:18px;font-weight:600;color:#00ffcc;}
+.question-box{margin-top:25px;font-size:18px;min-height:60px;}
+textarea{width:100%;margin-top:20px;padding:15px;border-radius:10px;border:none;font-size:15px;resize:none;}
+button{margin-top:20px;padding:12px;width:100%;border:none;border-radius:8px;background:#00c6ff;font-weight:600;cursor:pointer;transition:0.3s;}
 button:hover{background:#00ffcc;}
-
-.result{
-margin-top:20px;
-padding:15px;
-border-radius:8px;
-}
-
-.pass{background:#004d40;}
-.fail{background:#8B0000;}
-
-.final{
-margin-top:15px;
-font-weight:600;
-font-size:18px;
-}
+.result{margin-top:20px;padding:15px;border-radius:8px;font-size:15px;}
+.score-board{margin-top:15px;font-weight:600;}
+.progress-bar{height:8px;background:#333;border-radius:10px;margin-top:8px;overflow:hidden;}
+.progress{height:100%;width:0%;background:#00ffcc;transition:0.3s;}
 </style>
 </head>
-
 <body>
 
 <div class="container">
+<h1>AI Interview Simulator</h1>
 
-<h1>Enterprise AI Interview Simulator</h1>
-
-<div class="top">
-<select id="role">
+<div class="top-section">
+<select id="roleSelect">
 <option value="Software Engineer">Software Engineer</option>
 <option value="Data Scientist">Data Scientist</option>
 <option value="Cloud Engineer">Cloud Engineer</option>
 <option value="Cyber Security Analyst">Cyber Security Analyst</option>
 <option value="HR Manager">HR Manager</option>
-<option value="AI/ML Engineer">AI/ML Engineer</option>
 <option value="Business Analyst">Business Analyst</option>
+<option value="AI/ML Engineer">AI/ML Engineer</option>
 <option value="Digital Marketing Manager">Digital Marketing Manager</option>
 </select>
 
@@ -118,131 +45,111 @@ font-size:18px;
 
 <button onclick="startInterview()">Start Interview</button>
 
-<div class="question" id="questionBox"></div>
+<div class="question-box" id="questionBox"></div>
 
-<textarea id="answer" rows="5" placeholder="Type or Speak your answer..."></textarea>
+<textarea id="answerBox" rows="5" placeholder="Type your professional answer here..."></textarea>
 
-<button onclick="startVoice()">🎤 Start Voice Input</button>
-<button onclick="stopVoice()">🛑 Stop Voice Input</button>
+<button onclick="startRecording()">🎤 Speak Answer</button>
 <button onclick="submitAnswer()">Submit Answer</button>
 
 <div class="result" id="resultBox"></div>
-<div class="final" id="finalResult"></div>
-
+<div class="score-board" id="scoreBoard"></div>
+<div class="progress-bar"><div class="progress" id="progress"></div></div>
 </div>
 
 <script>
+let timer, timeLeft=60, score=0, totalAsked=0, usedQuestions=[], currentQuestion=null, dismissed=false;
 
-let timer;
-let timeLeft=60;
-let questionIndex=0;
-let totalScore=0;
-let disqualified=false;
-let currentKeywords=[];
-let recognition;
-
-const questionBank={
+// Questions with technical + personal keywords
+const questionBank = {
 "Software Engineer":[
-{q:"Explain OOPS principles.",keywords:["encapsulation","inheritance","polymorphism","abstraction"]},
-{q:"Tell me about yourself.",keywords:["experience","skills","education","career"]},
-{q:"What is REST API?",keywords:["http","client","server","api"]},
-{q:"How do you manage deadlines?",keywords:["planning","priority","time","management"]}
+{q:"Explain OOPS principles.",k:["encapsulation","inheritance","polymorphism","abstraction"]},
+{q:"Tell me about yourself.",k:["experience","skills","education"]},
+{q:"What is REST API?",k:["api","http","client","server"]},
+{q:"How do you handle deadlines?",k:["time","priority","management"]}
 ],
-
 "Data Scientist":[
-{q:"What is overfitting?",keywords:["model","training","testing","variance"]},
-{q:"Why Data Science career?",keywords:["data","analysis","insights"]},
-{q:"Explain regression.",keywords:["prediction","variable","continuous"]},
-{q:"Describe your strengths.",keywords:["skills","adapt","learning"]}
+{q:"What is overfitting?",k:["model","training","test"]},
+{q:"Describe your ML project.",k:["model","data","result"]},
+{q:"Explain bias vs variance.",k:["bias","variance"]},
+{q:"Why Data Science?",k:["analysis","data","insight"]}
 ],
-
 "Cloud Engineer":[
-{q:"Explain IaaS PaaS SaaS.",keywords:["infrastructure","platform","software","cloud"]},
-{q:"Why cloud computing?",keywords:["scalability","technology","demand"]},
-{q:"What is load balancing?",keywords:["traffic","server","distribution"]},
-{q:"How do you handle pressure?",keywords:["planning","focus","priority"]}
+{q:"What is cloud computing?",k:["cloud","internet","server"]},
+{q:"Explain IaaS, PaaS, SaaS.",k:["iaas","paas","saas"]},
+{q:"How do you manage failures?",k:["backup","recovery"]},
+{q:"Describe a cloud project.",k:["deployment","service"]}
 ],
-
 "Cyber Security Analyst":[
-{q:"What is phishing?",keywords:["attack","email","fraud"]},
-{q:"Why cyber security?",keywords:["protection","security","threat"]},
-{q:"What is vulnerability assessment?",keywords:["risk","scan","weakness"]},
-{q:"How do you respond to incidents?",keywords:["analysis","response","mitigation"]}
+{q:"What is phishing?",k:["attack","email","fraud"]},
+{q:"Explain encryption.",k:["data","security","key"]},
+{q:"Describe a security breach response.",k:["incident","response","recovery"]},
+{q:"Why cyber security?",k:["security","threat","protection"]}
 ],
-
 "HR Manager":[
-{q:"Explain recruitment lifecycle.",keywords:["screening","interview","selection"]},
-{q:"Why HR field?",keywords:["people","communication","management"]},
-{q:"How do you resolve conflicts?",keywords:["discussion","solution","team"]},
-{q:"Describe leadership experience.",keywords:["lead","team","motivate"]}
+{q:"Explain recruitment lifecycle.",k:["interview","selection","hiring"]},
+{q:"How do you resolve conflicts?",k:["communication","resolution"]},
+{q:"Describe leadership experience.",k:["leadership","team"]},
+{q:"Why HR field?",k:["people","management"]}
 ],
-
-"AI/ML Engineer":[
-{q:"What is deep learning?",keywords:["neural","network","layers"]},
-{q:"Why AI career?",keywords:["innovation","automation","technology"]},
-{q:"What is model deployment?",keywords:["production","server","api"]},
-{q:"Explain your AI project.",keywords:["model","data","problem"]}
-],
-
 "Business Analyst":[
-{q:"What is SWOT analysis?",keywords:["strength","weakness","opportunity","threat"]},
-{q:"Why Business Analyst role?",keywords:["analysis","business","requirement"]},
-{q:"Explain requirement gathering.",keywords:["stakeholder","documentation","meeting"]},
-{q:"How do you prioritize tasks?",keywords:["priority","deadline","impact"]}
+{q:"What is requirement gathering?",k:["requirements","analysis","stakeholders"]},
+{q:"Explain SWOT analysis.",k:["strength","weakness","opportunity","threat"]},
+{q:"Describe stakeholder management.",k:["communication","planning","coordination"]},
+{q:"Why BA role?",k:["analysis","planning","communication"]}
 ],
-
+"AI/ML Engineer":[
+{q:"What is gradient descent?",k:["optimization","loss","learning"]},
+{q:"Explain neural networks.",k:["layers","activation","weights"]},
+{q:"What is deep learning?",k:["neural","layers","representation"]},
+{q:"Explain your AI project.",k:["model","dataset","result"]}
+],
 "Digital Marketing Manager":[
-{q:"What is SEO?",keywords:["search","engine","optimization"]},
-{q:"Explain marketing funnel.",keywords:["awareness","consideration","conversion"]},
-{q:"Why marketing career?",keywords:["creative","strategy","growth"]},
-{q:"How do you measure campaign success?",keywords:["analytics","roi","conversion"]}
-]
-};
+{q:"What is SEO?",k:["search","engine","optimization"]},
+{q:"Explain content strategy.",k:["content","audience","campaign"]},
+{q:"How do you measure campaign success?",k:["metrics","roi","analytics"]},
+{q:"Why marketing career?",k:["brand","growth","customer"]}
+]};
 
-function speak(text){
-let speech=new SpeechSynthesisUtterance(text);
-speech.lang="en-US";
-window.speechSynthesis.speak(speech);
-}
-
+// Start Interview
 function startInterview(){
-disqualified=false;
-questionIndex=0;
-totalScore=0;
-document.getElementById("finalResult").innerHTML="";
-askQuestion();
-}
+if(dismissed){alert("You are DISQUALIFIED ❌"); return;}
 
-function askQuestion(){
-if(disqualified) return;
-
-let role=document.getElementById("role").value;
+let role=document.getElementById("roleSelect").value;
 let questions=questionBank[role];
+let available=questions.filter(q=>!usedQuestions.includes(q.q));
 
-if(questionIndex>=questions.length){
-let finalGrade= totalScore>=30 ? "A" : totalScore>=20 ? "B" : "C";
-document.getElementById("finalResult").innerHTML=
-"Interview Completed | Final Grade: "+finalGrade;
+if(available.length===0){
+document.getElementById("questionBox").innerHTML="Interview Completed!";
 return;
 }
 
-let current=questions[questionIndex];
-currentKeywords=current.keywords;
+currentQuestion=available[Math.floor(Math.random()*available.length)];
+usedQuestions.push(currentQuestion.q);
+totalAsked++;
 
-document.getElementById("questionBox").innerHTML="<b>Question:</b> "+current.q;
-document.getElementById("answer").value="";
+document.getElementById("questionBox").innerHTML="<b>Question:</b> "+currentQuestion.q;
+document.getElementById("answerBox").value="";
 document.getElementById("resultBox").innerHTML="";
 
-speak(current.q);
-
+// Voice for question only
+speakText(currentQuestion.q);
 startTimer();
 }
 
+// Text-to-Speech
+function speakText(text){
+let speech=new SpeechSynthesisUtterance(text);
+speech.lang="en-US";
+speech.rate=1;
+window.speechSynthesis.speak(speech);
+}
+
+// Timer
 function startTimer(){
 clearInterval(timer);
 timeLeft=60;
 updateTimer();
-
 timer=setInterval(()=>{
 timeLeft--;
 updateTimer();
@@ -257,81 +164,66 @@ function updateTimer(){
 document.getElementById("timer").innerHTML="Time: "+timeLeft+"s";
 }
 
+// Speech Recognition
+function startRecording(){
+if(!('webkitSpeechRecognition' in window)){alert("Use Chrome"); return;}
+let recognition=new webkitSpeechRecognition();
+recognition.lang="en-US";
+recognition.start();
+recognition.onresult=function(event){
+document.getElementById("answerBox").value=event.results[0][0].transcript;
+};
+}
+
+// Submit & Evaluate
 function submitAnswer(){
 clearInterval(timer);
 evaluateAnswer();
 }
 
 function evaluateAnswer(){
-let answer=document.getElementById("answer").value.toLowerCase();
-let match=0;
+if(!currentQuestion || dismissed) return;
 
-currentKeywords.forEach(word=>{
-if(answer.includes(word)) match++;
-});
+let ans=document.getElementById("answerBox").value.toLowerCase();
+let result=document.getElementById("resultBox");
 
-if(match<2){
-disqualified=true;
-document.getElementById("resultBox").innerHTML=
-"❌ Irrelevant Answer. Candidate Disqualified.";
-document.getElementById("resultBox").className="result fail";
-document.getElementById("finalResult").innerHTML="Status: Disqualified";
-speak("Your answer is irrelevant. You are disqualified.");
+// Too short
+if(ans.length<20){
+result.style.background="#8B0000";
+result.innerHTML="Answer too short. Improve your explanation.";
 return;
 }
 
-let grade,feedback,points;
+// Relevance Check
+let match=false;
+currentQuestion.k.forEach(word=>{
+if(ans.includes(word)) match=true;
+});
 
-if(answer.length>150){
-grade="A+";
-feedback="Outstanding answer with strong clarity and depth.";
-points=10;
-}
-else if(answer.length>100){
-grade="A";
-feedback="Strong professional response.";
-points=8;
-}
-else if(answer.length>60){
-grade="B";
-feedback="Good answer but needs more technical depth.";
-points=6;
-}
-else{
-grade="C";
-feedback="Basic answer. Improve explanation.";
-points=4;
+if(!match){
+dismissed=true;
+result.style.background="#8B0000";
+result.innerHTML="<b>DISQUALIFIED ❌</b><br>Answer not relevant.";
+document.getElementById("scoreBoard").innerHTML="Status: Disqualified";
+// 🔊 Voice alert only when disqualified
+speakText("Candidate disqualified due to irrelevant answer");
+return;
 }
 
-totalScore+=points;
+// Grading + Feedback
+let grade, feedback, points;
+if(ans.length>180){grade="A+"; points=10; feedback="Outstanding detailed professional answer.";}
+else if(ans.length>120){grade="A"; points=8; feedback="Strong answer with clarity and depth.";}
+else if(ans.length>70){grade="B"; points=6; feedback="Good answer but add more technical depth.";}
+else{grade="C"; points=4; feedback="Basic response. Needs improvement.";}
 
-document.getElementById("resultBox").innerHTML=
-"✅ Relevant Answer<br><b>Grade:</b> "+grade+
-"<br><b>Feedback:</b> "+feedback;
+score+=points;
+result.style.background="#004d40";
+result.innerHTML="<b>Grade:</b> "+grade+"<br><b>Feedback:</b> "+feedback;
 
-document.getElementById("resultBox").className="result pass";
-
-speak("Grade "+grade+". "+feedback);
-
-questionIndex++;
-setTimeout(askQuestion,2500);
+document.getElementById("scoreBoard").innerHTML="Score: "+score+" | Questions Attempted: "+totalAsked;
+document.getElementById("progress").style.width=(totalAsked*12)+"%";
 }
-
-function startVoice(){
-window.SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-recognition=new SpeechRecognition();
-recognition.lang="en-US";
-recognition.start();
-recognition.onresult=function(event){
-document.getElementById("answer").value=
-event.results[0][0].transcript;
-}
-}
-
-function stopVoice(){
-if(recognition) recognition.stop();
-}
-
 </script>
 
 </body>
