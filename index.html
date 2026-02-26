@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Mock Interview System</title>
+<style>
+body{
+font-family: Arial;
+background: linear-gradient(to right,#d7f0f7,#fdfbfb);
+text-align:center;
+padding:20px;
+}
+
+.container{
+background:white;
+padding:20px;
+border-radius:15px;
+width:70%;
+margin:auto;
+box-shadow:0 0 10px gray;
+}
+
+select,textarea,button{
+padding:10px;
+margin:10px;
+width:80%;
+border-radius:8px;
+border:1px solid gray;
+}
+
+button{
+background:#00897b;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+button:hover{
+background:#00695c;
+}
+
+#questionBox{
+font-size:18px;
+margin:15px;
+font-weight:bold;
+}
+
+#timer{
+color:red;
+font-weight:bold;
+}
+
+#resultBox{
+margin-top:15px;
+padding:10px;
+color:white;
+border-radius:8px;
+}
+
+#scoreBoard{
+margin-top:10px;
+font-weight:bold;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>🤖 AI Mock Interview System</h2>
+
+<select id="roleSelect">
+<option>Software Engineer</option>
+<option>Data Scientist</option>
+<option>Cloud Engineer</option>
+<option>Cyber Security</option>
+<option>Digital Marketing</option>
+<option>HR Manager</option>
+<option>Teacher</option>
+<option>Mechanical Engineer</option>
+<option>Civil Engineer</option>
+<option>Banking</option>
+<option>Doctor</option>
+<option>Entrepreneur</option>
+</select>
+
+<br>
+
+<button onclick="startInterview()">Start Question</button>
+<p id="timer">Time: 60s</p>
+
+<div id="questionBox"></div>
+
+<textarea id="answerBox" rows="5" placeholder="Your answer here..."></textarea>
+
+<br>
+<button onclick="startRecording()">🎤 Speak Answer</button>
+<button onclick="submitAnswer()">Submit</button>
+
+<div id="resultBox"></div>
+<div id="scoreBoard"></div>
+
+</div>
+
+<script>
+let timer,timeLeft=60,score=0,total=0,used=[],current=null,dismissed=false;
+
+const questionBank={
+"Software Engineer":[
+{q:"Explain OOPS principles.",k:["encapsulation","inheritance","polymorphism","abstraction"]},
+{q:"What is REST API?",k:["api","http","client","server"]},
+{q:"Explain multithreading.",k:["thread","parallel","process"]},
+{q:"How do you handle deadlines?",k:["time","priority","management"]},
+{q:"Tell me about yourself.",k:["experience","skills","education"]}
+],
+
+"Data Scientist":[
+{q:"What is overfitting?",k:["model","training","test"]},
+{q:"Explain bias vs variance.",k:["bias","variance"]},
+{q:"What is regression?",k:["prediction","model","data"]},
+{q:"Describe your ML project.",k:["model","data","result"]},
+{q:"Why Data Science?",k:["analysis","data","insight"]}
+],
+
+"Cloud Engineer":[
+{q:"What is cloud computing?",k:["cloud","internet","server"]},
+{q:"Explain IaaS PaaS SaaS.",k:["iaas","paas","saas"]},
+{q:"What is load balancing?",k:["traffic","server","distribution"]},
+{q:"How do you manage failures?",k:["backup","recovery"]},
+{q:"Describe your cloud project.",k:["deployment","service"]}
+],
+
+"Cyber Security":[
+{q:"What is phishing?",k:["attack","email","fraud"]},
+{q:"Explain firewall.",k:["network","security","filter"]},
+{q:"What is encryption?",k:["data","security","key"]},
+{q:"How to secure web apps?",k:["authentication","validation","security"]},
+{q:"How do you handle breaches?",k:["incident","response","recovery"]}
+]
+};
+
+/* START */
+function startInterview(){
+if(dismissed){alert("You are DISMISSED ❌");return;}
+
+let role=document.getElementById("roleSelect").value;
+let list=questionBank[role];
+let available=list.filter(x=>!used.includes(x.q));
+
+if(available.length==0){
+document.getElementById("questionBox").innerHTML="Interview Completed ✅";
+return;
+}
+
+current=available[Math.floor(Math.random()*available.length)];
+used.push(current.q);
+total++;
+
+document.getElementById("questionBox").innerHTML=current.q;
+document.getElementById("answerBox").value="";
+document.getElementById("resultBox").innerHTML="";
+
+speakText(current.q);
+startTimer();
+}
+
+/* SPEAK QUESTION */
+function speakText(text){
+let speech=new SpeechSynthesisUtterance(text);
+speech.lang="en-US";
+window.speechSynthesis.speak(speech);
+}
+
+/* TIMER */
+function startTimer(){
+clearInterval(timer);
+timeLeft=60;
+updateTimer();
+timer=setInterval(()=>{
+timeLeft--;
+updateTimer();
+if(timeLeft<=0){
+clearInterval(timer);
+submitAnswer();
+}
+},1000);
+}
+
+function updateTimer(){
+document.getElementById("timer").innerHTML="Time: "+timeLeft+"s";
+}
+
+/* MICROPHONE */
+function startRecording(){
+if(!('webkitSpeechRecognition'in window)){
+alert("Use Chrome Browser");
+return;
+}
+let recognition=new webkitSpeechRecognition();
+recognition.lang="en-US";
+recognition.start();
+recognition.onresult=function(event){
+document.getElementById("answerBox").value=event.results[0][0].transcript;
+};
+}
+
+/* SUBMIT */
+function submitAnswer(){
+if(dismissed||!current)return;
+clearInterval(timer);
+
+let ans=document.getElementById("answerBox").value.toLowerCase();
+let result=document.getElementById("resultBox");
+
+if(ans.length<20){
+result.style.background="darkred";
+result.innerHTML="Answer too short ❌";
+return;
+}
+
+let match=false;
+current.k.forEach(word=>{
+if(ans.includes(word))match=true;
+});
+
+if(!match){
+dismissed=true;
+result.style.background="darkred";
+result.innerHTML="<b>DISMISSED ❌</b><br>Answer not relevant.";
+document.getElementById("scoreBoard").innerHTML="Status: Dismissed";
+return;
+}
+
+let grade,points,feedback;
+
+if(ans.length>150){
+grade="A+";
+points=10;
+feedback="Excellent explanation with strong clarity.";
+}
+else if(ans.length>100){
+grade="A";
+points=8;
+feedback="Very good answer. Add more examples.";
+}
+else if(ans.length>60){
+grade="B";
+points=6;
+feedback="Good answer but needs more depth.";
+}
+else{
+grade="C";
+points=4;
+feedback="Basic explanation. Expand more.";
+}
+
+score+=points;
+
+result.style.background="#004d40";
+result.innerHTML="<b>Grade:</b> "+grade+
+"<br><b>Feedback:</b> "+feedback;
+
+document.getElementById("scoreBoard").innerHTML=
+"Score: "+score+" | Questions: "+total;
+}
+</script>
+
+</body>
+</html>
